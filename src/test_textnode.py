@@ -1,7 +1,7 @@
 import unittest
 
 from leafnode import LeafNode
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, split_nodes_delimiter
 
 
 class TestTextNode(unittest.TestCase):
@@ -102,6 +102,26 @@ class TestTextNode(unittest.TestCase):
             node.to_html_node(src="/imagesource.png", alt="Sourced image").value,
             "",
         )
+    
+    def test_split_plain_text(self):
+        split_nodes = split_nodes_delimiter([
+            TextNode(
+                text="This one has a *BOLD* text", text_type=TextType.TEXT),
+            TextNode(
+                text="*This* one starts with bold", text_type=TextType.TEXT),
+            TextNode(
+                text="This one ends with *bold*", text_type=TextType.TEXT)
+        ], "*", text_type=TextType.BOLD)
+
+        self.assertEqual(split_nodes,[
+            TextNode(text="This one has a ", text_type=TextType.TEXT),
+            TextNode(text="BOLD", text_type=TextType.BOLD),
+            TextNode(text=" text", text_type=TextType.TEXT),
+            TextNode(text="This", text_type=TextType.BOLD),
+            TextNode(text=" one starts with bold", text_type=TextType.TEXT),
+            TextNode(text="This one ends with ", text_type=TextType.TEXT),
+            TextNode(text="bold", text_type=TextType.BOLD)
+        ])
 
 
 if __name__ == "__main__":
