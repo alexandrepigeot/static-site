@@ -1,5 +1,6 @@
 from enum import Enum
 
+from extract import extract_markdown_images, extract_markdown_links
 from leafnode import LeafNode
 
 
@@ -76,3 +77,92 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                 marking = not marking
 
     return new_nodes
+
+def split_nodes_image(old_nodes):
+    new_nodes = []
+
+    for node in old_nodes:
+        if node.text_type is not TextType.TEXT:
+            new_nodes.append(node)
+            continue
+
+        images = extract_markdown_images(node.text)
+
+        if len(images) == 0:
+            new_nodes.append(node)
+            continue
+
+        current_text = node.text
+
+        for image in images:
+            sections = current_text.split(f"![{image[0]}]({image[1]})", 1)
+
+            new_nodes.append(TextNode(
+                text=sections[0], text_type=TextType.TEXT
+            ))
+
+            new_nodes.append(TextNode(
+                text=image[0], text_type=TextType.IMAGE, url=image[1]
+            ))
+
+            current_text = sections[1]
+        
+        if current_text:        
+            new_nodes.append(TextNode(
+                text=current_text, text_type=TextType.TEXT
+            ))
+    
+    return new_nodes
+
+def split_nodes_link(old_nodes):
+    new_nodes = []
+
+    for node in old_nodes:
+        if node.text_type is not TextType.TEXT:
+            new_nodes.append(node)
+            continue
+        
+        links = extract_markdown_links(node.text)
+
+        if len(links) == 0:
+            new_nodes.append(node)
+            continue
+        
+        current_text = node.text
+
+        for link in links:
+            sections = current_text.split(f"[{link[0]}]({link[1]})", 1)
+
+            new_nodes.append(TextNode(
+                text=sections[0], text_type=TextType.TEXT
+            ))
+
+            new_nodes.append(TextNode(
+                text=link[0], text_type=TextType.LINK, url=link[1]
+            ))
+
+            current_text = sections[1]
+
+        if current_text:
+            new_nodes.append(TextNode(
+                text=current_text, text_type=TextType.TEXT
+            ))
+        
+    return new_nodes
+
+def text_to_textnodes(text):
+    nodes_list = split_nodes_delimiter(
+        [TextNode(text=text, text_type=TextType.TEXT)],delimiter="**", text_type=TextType.BOLD
+    )
+
+    nodes_list = split_nodes_delimiter(
+        nodes_list, delimiter="_", text_type=TextType.ITALIC
+    )
+
+    nodes_list = split_nodes_delimiter(
+        nodes_list, delimiter="`", text_type=TextType.CODE
+    )
+
+    nodes_list = split_nodes_image(nodes_list)
+
+    return split_nodes_link(nodes_list)
